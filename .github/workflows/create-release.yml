@@ -35,50 +35,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apk-artifact
-          path: app-release.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           compression-level: 5
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Create Tag for Manual Trigger
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git tag ${{ github.event.inputs.release_tag }}
-          git push origin ${{ github.event.inputs.release_tag }}
-
-      - name: Download APK Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: apk-artifact
-
-      - name: Rename APK for Release
-        run: |
-          TAG_NAME="${{ github.event.inputs.release_tag || github.ref_name }}"
-          mv app-release.apk "Materialbook_${TAG_NAME}.apk"
-          if [ ! -f "Materialbook_${TAG_NAME}.apk" ]; then
-            echo "Failed to rename APK"
-            exit 1
-          fi
-
-      - name: Prepare Changelog
-        run: |
-          if [ ! -f CHANGE.md ]; then
-            echo "CHANGE.md not found, using default changelog"
-            echo "Release ${{ github.ref_name || github.event.inputs.release_tag }}" > CHANGE.txt
-          else
-            cp CHANGE.md CHANGE.txt
-          fi
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
-          files: Materialbook_${{ github.event.inputs.release_tag || github.ref_name }}.apk
-          body_path: CHANGE.txt
